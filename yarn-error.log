@@ -1,0 +1,36 @@
+Arguments: 
+  /home/aniket/.nvm/versions/node/v19.4.0/bin/node /home/aniket/.cache/node/corepack/yarn/1.22.19/bin/yarn.js init
+
+PATH: 
+  /home/aniket/Android/Sdk/platform-tools:/home/aniket/.local/share/solana/install/active_release/bin:/home/aniket/.deno/bin:/home/aniket/.flutter/bin:/home/aniket/.yarn/bin:/home/aniket/go/bin:/home/aniket/.cargo/bin:/home/aniket/.local/bin:/home/aniket/.nvm/versions/node/v19.4.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files/Alacritty/:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/Program Files/PowerShell/7-preview/preview:/mnt/c/Program Files (x86)/gsudo/:/mnt/c/ProgramData/chocolatey/bin:/mnt/c/Program Files/PuTTY/:/mnt/c/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/:/mnt/c/Program Files/Docker/Docker/resources/bin:/mnt/c/Program Files/Neovim/bin:/mnt/c/Program Files/GitHub CLI/:/mnt/c/Users/conta/scoop/apps/python/current/Scripts:/mnt/c/Users/conta/scoop/apps/python/current:/mnt/c/Users/conta/scoop/apps/nodejs/current/bin:/mnt/c/Users/conta/scoop/apps/nodejs/current:/mnt/c/Users/conta/scoop/apps/gcc/current/bin:/mnt/c/Users/conta/.cargo/bin:/mnt/c/Users/conta/scoop/shims:/mnt/c/Users/conta/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/conta/AppData/Local/JetBrains/Toolbox/scripts:/mnt/c/Users/conta/AppData/Local/Programs/Microsoft VS Code/bin
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  19.4.0
+
+Platform: 
+  linux x64
+
+Trace: 
+  Error: canceled
+      at Interface.<anonymous> (/home/aniket/.cache/node/corepack/yarn/1.22.19/lib/cli.js:137150:13)
+      at Interface.emit (node:events:513:28)
+      at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1131:18)
+      at ReadStream.onkeypress (node:internal/readline/interface:271:20)
+      at ReadStream.emit (node:events:513:28)
+      at emitKeys (node:internal/readline/utils:357:14)
+      at emitKeys.next (<anonymous>)
+      at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+      at ReadStream.emit (node:events:513:28)
+      at addChunk (node:internal/streams/readable:324:12)
+
+npm manifest: 
+  No manifest
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile

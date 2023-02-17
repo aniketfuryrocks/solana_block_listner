@@ -1,0 +1,11 @@
+{
+  "name": "block_listner",
+  "version": "1.0.0",
+  "main": "listner.ts",
+  "repository": "https://github.com/aniketfuryrocks/solana_block_listner",
+  "author": "aniketfuryrocks <contact@aniketprajapati.me>",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/web3.js": "^1.73.2"
+  }
+}
