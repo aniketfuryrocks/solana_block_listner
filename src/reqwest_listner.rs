@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use log::{info, warn};
 use serde_json::json;
 
@@ -135,10 +137,22 @@ impl ReqwestListner {
 
             latest_slot = new_latest_slot;
 
+            let mut total_time_to_index_millis = 0;
+            let len = new_block_slots.len() as u128;
+
             for slot in new_block_slots {
+                let instant = Instant::now();
+
                 self.index_slot(slot.as_u64().unwrap(), commitment, transaction_details)
                     .await?;
+
+                total_time_to_index_millis += instant.elapsed().as_millis();
             }
+
+            info!(
+                "Avg time to index {len} blocks {}",
+                (total_time_to_index_millis / len)
+            );
         }
     }
 }

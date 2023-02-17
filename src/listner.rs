@@ -2,6 +2,7 @@ use log::{info, warn};
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::RpcBlockConfig};
 use solana_sdk::{commitment_config::CommitmentConfig, slot_history::Slot};
 use solana_transaction_status::{TransactionDetails, UiTransactionEncoding};
+use tokio::time::Instant;
 
 pub struct Listner {
     pub rpc_client: RpcClient,
@@ -87,10 +88,22 @@ impl Listner {
 
             latest_slot = new_latest_slot;
 
+            let mut total_time_to_index_millis = 0;
+            let len = new_block_slots.len() as u128;
+
             for slot in new_block_slots {
+                let instant = Instant::now();
+
                 self.index_slot(slot, commitment_config, transaction_details)
                     .await?;
+
+                total_time_to_index_millis += instant.elapsed().as_millis();
             }
+
+            info!(
+                "Avg time to index {len} blocks {}",
+                (total_time_to_index_millis / len)
+            );
         }
     }
 }
