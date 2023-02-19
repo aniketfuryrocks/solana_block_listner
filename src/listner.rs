@@ -1,3 +1,4 @@
+use futures::future::join_all;
 use log::{info, warn};
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::RpcBlockConfig};
 use solana_sdk::{commitment_config::CommitmentConfig, slot_history::Slot};
@@ -88,21 +89,19 @@ impl Listner {
 
             latest_slot = new_latest_slot;
 
-            let mut total_time_to_index_millis = 0;
-            let len = new_block_slots.len() as u128;
+            let len = new_block_slots.len();
+            let new_latest_slots = new_block_slots.into_iter();
 
-            for slot in new_block_slots {
-                let instant = Instant::now();
+            let index_futs = new_latest_slots
+                .map(|slot| self.index_slot(slot, commitment_config, transaction_details));
 
-                self.index_slot(slot, commitment_config, transaction_details)
-                    .await?;
-
-                total_time_to_index_millis += instant.elapsed().as_millis();
-            }
+            let instant = Instant::now();
+            join_all(index_futs).await;
+            let time_elapsed_ms = instant.elapsed().as_millis();
 
             info!(
                 "Avg time to index {len} blocks {}",
-                (total_time_to_index_millis / len)
+                (time_elapsed_ms / len as u128)
             );
         }
     }
