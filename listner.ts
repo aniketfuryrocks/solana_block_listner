@@ -66,18 +66,15 @@ class Listner {
 
             latest_slot = new_latest_slot;
 
-            let total_time_to_index_millis = 0;
+            const instant = Date.now();
 
-            for (const slot of new_block_slots) {
-                let instant = Date.now();
+            const new_block_promises = new_block_slots.map(slot => this.indexSlot(slot, commitment as Finality, transaction_details));
+            await Promise.all(new_block_promises);
 
-                await this.indexSlot(slot, commitment as Finality, transaction_details);
-
-                total_time_to_index_millis += (Date.now() - instant);
-            }
+            const time_elapsed = (Date.now() - instant);
 
             console.log(
-                `Avg time to index ${len} blocks ${(total_time_to_index_millis / len)}`,
+                `Avg time to index ${len} blocks ${(time_elapsed / len)}`,
             );
         }
     }
