@@ -5,6 +5,4 @@ use clap::Parser;
 pub struct Args {
     #[arg(short, long, default_value_t = String::from("https://api.mainnet-beta.solana.com"))]
     pub rpc_addr: String,
-    #[arg(short, long)]
-    pub use_reqwest: bool,
 }
