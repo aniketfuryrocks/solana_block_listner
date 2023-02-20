@@ -99,6 +99,7 @@ impl Listner {
             // reverse to put latest_slot first
             new_block_slots.reverse();
 
+            // need not queue up new slots if they are less than 16 and there the queue is empty
             let slots_to_get_blocks = if slot_que.is_empty() && new_block_slots.len() <= 16 {
                 new_block_slots
             } else  {
