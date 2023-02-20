@@ -98,9 +98,13 @@ impl Listner {
 
             // reverse to put latest_slot first
             new_block_slots.reverse();
-            slot_que.append(&mut new_block_slots);
 
-            let slots_to_get_blocks = slot_que.split_off(slot_que.len().min(16));
+            let slots_to_get_blocks = if slot_que.is_empty() && new_block_slots.len() <= 16 {
+                new_block_slots
+            } else  {
+                slot_que.append(&mut new_block_slots);
+                slot_que.split_off(slot_que.len().min(16))
+            };
 
             let index_futs = slots_to_get_blocks
                 .into_iter()
