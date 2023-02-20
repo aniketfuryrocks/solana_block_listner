@@ -6,10 +6,10 @@ use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::commitment_config::CommitmentConfig;
 use solana_transaction_status::TransactionDetails;
 
-use self::listner::Listner;
-use self::reqwest_listner::ReqwestListner;
+use self::{block_store::BlockStore, listner::Listner, reqwest_listner::ReqwestListner};
 use cli::Args;
 
+mod block_store;
 mod cli;
 mod listner;
 mod reqwest_listner;
@@ -31,8 +31,12 @@ pub async fn main() -> anyhow::Result<()> {
 
         listner.listen("finalized", "full").await?;
     } else {
+        let rpc_client = RpcClient::new(rpc_addr);
+        let block_store = BlockStore::new(&rpc_client).await?;
+
         let listner = Listner {
-            rpc_client: Arc::new(RpcClient::new(rpc_addr)),
+            rpc_client: Arc::new(rpc_client),
+            block_store,
         };
 
         listner

@@ -6,11 +6,14 @@ use log::{info, warn};
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::RpcBlockConfig};
 use solana_sdk::{commitment_config::CommitmentConfig, slot_history::Slot};
 use solana_transaction_status::{TransactionDetails, UiTransactionEncoding};
-use tokio::{task::JoinHandle, time::Instant};
+use tokio::task::JoinHandle;
+
+use crate::block_store::{BlockInformation, BlockStore};
 
 #[derive(Clone)]
 pub struct Listner {
     pub rpc_client: Arc<RpcClient>,
+    pub block_store: BlockStore,
 }
 
 impl Listner {
@@ -35,22 +38,23 @@ impl Listner {
             .await?;
 
         let blockhash = block.blockhash;
-        let parent_slot = block.parent_slot;
+        //        let parent_slot = block.parent_slot;
 
         let Some(block_height) = block.block_height else {
             warn!("Received no block height for slot {slot} and blockhash {blockhash}");
             return Ok(());
         };
 
-        let Some(transactions) = block.transactions else {
-            warn!("No transactions in block");
-            return Ok(());
-        };
+        //        let Some(transactions) = block.transactions else {
+        //            warn!("No transactions in block");
+        //            return Ok(());
+        //        };
 
-        info!(
-            "{slot} at {blockhash} height {block_height} with {} txs and parent {parent_slot}",
-            transactions.len()
-        );
+        let block_info = BlockInformation { slot, block_height };
+
+        self.block_store
+            .add_block(blockhash, block_info, commitment_config)
+            .await;
 
         Ok(())
     }
@@ -63,20 +67,11 @@ impl Listner {
     ) -> JoinHandle<anyhow::Result<()>> {
         tokio::spawn(async move {
             while let Ok(slots) = recv.recv().await {
-                let len = slots.len();
-
                 let index_futs = slots
                     .into_iter()
                     .map(|slot| self.index_slot(slot, commitment_config, transaction_details));
 
-                let instant = Instant::now();
                 join_all(index_futs).await;
-                let time_elapsed_ms = instant.elapsed().as_millis();
-
-                info!(
-                    "Avg time to index {len} blocks {}",
-                    (time_elapsed_ms / len as u128)
-                );
             }
             Ok(())
         })
@@ -113,11 +108,7 @@ impl Listner {
                 continue;
             }
 
-            let Some(new_latest_slot) = new_block_slots.last().cloned() else {
-                warn!("Didn't receive any block slots for {latest_slot}");
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                continue;
-            };
+            let new_latest_slot = *new_block_slots.last().unwrap();
 
             if latest_slot == new_latest_slot {
                 warn!("No new slots for {latest_slot}");
