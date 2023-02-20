@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::bail;
 use clap::Parser;
 use solana_client::nonblocking::rpc_client::RpcClient;
@@ -30,7 +32,7 @@ pub async fn main() -> anyhow::Result<()> {
         listner.listen("finalized", "full").await?;
     } else {
         let listner = Listner {
-            rpc_client: RpcClient::new(rpc_addr),
+            rpc_client: Arc::new(RpcClient::new(rpc_addr)),
         };
 
         listner

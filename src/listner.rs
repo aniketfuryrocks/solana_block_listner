@@ -1,12 +1,16 @@
+use std::sync::Arc;
+
+use async_channel::Receiver;
 use futures::future::join_all;
 use log::{info, warn};
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::RpcBlockConfig};
 use solana_sdk::{commitment_config::CommitmentConfig, slot_history::Slot};
 use solana_transaction_status::{TransactionDetails, UiTransactionEncoding};
-use tokio::time::Instant;
+use tokio::{task::JoinHandle, time::Instant};
 
+#[derive(Clone)]
 pub struct Listner {
-    pub rpc_client: RpcClient,
+    pub rpc_client: Arc<RpcClient>,
 }
 
 impl Listner {
@@ -51,6 +55,33 @@ impl Listner {
         Ok(())
     }
 
+    fn spawn_indexer(
+        self,
+        recv: Receiver<Vec<Slot>>,
+        commitment_config: CommitmentConfig,
+        transaction_details: TransactionDetails,
+    ) -> JoinHandle<anyhow::Result<()>> {
+        tokio::spawn(async move {
+            while let Ok(slots) = recv.recv().await {
+                let len = slots.len();
+
+                let index_futs = slots
+                    .into_iter()
+                    .map(|slot| self.index_slot(slot, commitment_config, transaction_details));
+
+                let instant = Instant::now();
+                join_all(index_futs).await;
+                let time_elapsed_ms = instant.elapsed().as_millis();
+
+                info!(
+                    "Avg time to index {len} blocks {}",
+                    (time_elapsed_ms / len as u128)
+                );
+            }
+            Ok(())
+        })
+    }
+
     pub async fn listen(
         self,
         commitment_config: CommitmentConfig,
@@ -63,8 +94,15 @@ impl Listner {
 
         info!("Listening to blocks {commitment_config:?} with {transaction_details:?} transaction details");
 
+        let (send, recv) = async_channel::unbounded();
+
+        for _ in 0..2 {
+            self.clone()
+                .spawn_indexer(recv.clone(), commitment_config, transaction_details);
+        }
+
         loop {
-            let new_block_slots = self
+            let mut new_block_slots = self
                 .rpc_client
                 .get_blocks_with_commitment(latest_slot, None, commitment_config)
                 .await?;
@@ -89,20 +127,10 @@ impl Listner {
 
             latest_slot = new_latest_slot;
 
-            let len = new_block_slots.len();
-            let new_latest_slots = new_block_slots.into_iter();
+            // reverse to put latest_slot first
+            new_block_slots.reverse();
 
-            let index_futs = new_latest_slots
-                .map(|slot| self.index_slot(slot, commitment_config, transaction_details));
-
-            let instant = Instant::now();
-            join_all(index_futs).await;
-            let time_elapsed_ms = instant.elapsed().as_millis();
-
-            info!(
-                "Avg time to index {len} blocks {}",
-                (time_elapsed_ms / len as u128)
-            );
+            send.send(new_block_slots).await?;
         }
     }
 }
