@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::sync::Arc;
 
 use async_channel::Receiver;
@@ -59,24 +60,6 @@ impl Listner {
         Ok(())
     }
 
-    fn spawn_indexer(
-        self,
-        recv: Receiver<Vec<Slot>>,
-        commitment_config: CommitmentConfig,
-        transaction_details: TransactionDetails,
-    ) -> JoinHandle<anyhow::Result<()>> {
-        tokio::spawn(async move {
-            while let Ok(slots) = recv.recv().await {
-                let index_futs = slots
-                    .into_iter()
-                    .map(|slot| self.index_slot(slot, commitment_config, transaction_details));
-
-                join_all(index_futs).await;
-            }
-            Ok(())
-        })
-    }
-
     pub async fn listen(
         self,
         commitment_config: CommitmentConfig,
@@ -89,12 +72,7 @@ impl Listner {
 
         info!("Listening to blocks {commitment_config:?} with {transaction_details:?} transaction details");
 
-        let (send, recv) = async_channel::unbounded();
-
-        for _ in 0..2 {
-            self.clone()
-                .spawn_indexer(recv.clone(), commitment_config, transaction_details);
-        }
+        let mut slot_que = Vec::new();
 
         loop {
             let mut new_block_slots = self
@@ -120,8 +98,15 @@ impl Listner {
 
             // reverse to put latest_slot first
             new_block_slots.reverse();
+            slot_que.append(&mut new_block_slots);
 
-            send.send(new_block_slots).await?;
+            let slots_to_get_blocks = slot_que.split_off(slot_que.len().min(16));
+
+            let index_futs = slots_to_get_blocks
+                .into_iter()
+                .map(|slot| self.index_slot(slot, commitment_config, transaction_details));
+
+            join_all(index_futs).await;
         }
     }
 }
