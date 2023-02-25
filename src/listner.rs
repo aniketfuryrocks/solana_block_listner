@@ -1,13 +1,10 @@
-use std::collections::VecDeque;
 use std::sync::Arc;
 
-use async_channel::Receiver;
 use futures::future::join_all;
 use log::{info, warn};
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::RpcBlockConfig};
 use solana_sdk::{commitment_config::CommitmentConfig, slot_history::Slot};
 use solana_transaction_status::{TransactionDetails, UiTransactionEncoding};
-use tokio::task::JoinHandle;
 
 use crate::block_store::{BlockInformation, BlockStore};
 
@@ -102,7 +99,7 @@ impl Listner {
             // need not queue up new slots if they are less than 16 and there the queue is empty
             let slots_to_get_blocks = if slot_que.is_empty() && new_block_slots.len() <= 16 {
                 new_block_slots
-            } else  {
+            } else {
                 slot_que.append(&mut new_block_slots);
                 slot_que.split_off(slot_que.len().min(16))
             };
