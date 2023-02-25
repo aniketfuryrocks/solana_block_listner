@@ -67,48 +67,43 @@ impl Listner {
             .get_slot_with_commitment(commitment_config)
             .await?;
 
-        info!("Listening to blocks {commitment_config:?} with {transaction_details:?} transaction details");
+        info!("Listening to blocks {commitment_config:?}");
 
         let mut slot_que = Vec::new();
 
         loop {
-            let mut new_block_slots = self
+            let new_latest_slot = self
                 .rpc_client
-                .get_blocks_with_commitment(latest_slot, None, commitment_config)
+                .get_slot_with_commitment(commitment_config)
                 .await?;
-
-            if new_block_slots.is_empty() {
-                warn!("{latest_slot} No slots");
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                continue;
-            }
-
-            let new_latest_slot = *new_block_slots.last().unwrap();
 
             if latest_slot == new_latest_slot {
                 warn!("No new slots for {latest_slot}");
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                 continue;
             }
 
+            let mut new_block_slots = (latest_slot..new_latest_slot).into_iter().collect();
             latest_slot = new_latest_slot;
 
-            // reverse to put latest_slot first
-            new_block_slots.reverse();
-
-            // need not queue up new slots if they are less than 16 and there the queue is empty
-            let slots_to_get_blocks = if slot_que.is_empty() && new_block_slots.len() <= 16 {
-                new_block_slots
-            } else {
-                slot_que.append(&mut new_block_slots);
-                slot_que.split_off(slot_que.len().min(16))
-            };
+            // need not queue up new slots if they are less than 16 and the queue is empty
+            let slots_to_get_blocks =
+                if slot_que.is_empty() && (new_latest_slot - latest_slot) <= 16 {
+                    new_block_slots
+                } else {
+                    slot_que.append(&mut new_block_slots);
+                    slot_que.split_off(slot_que.len().min(16))
+                };
 
             let index_futs = slots_to_get_blocks
-                .into_iter()
-                .map(|slot| self.index_slot(slot, commitment_config, transaction_details));
+                .iter()
+                .map(|slot| self.index_slot(*slot, commitment_config, transaction_details));
 
-            join_all(index_futs).await;
+            for (index, status) in join_all(index_futs).await.into_iter().enumerate() {
+                if status.is_err() {
+                    slot_que.push(slots_to_get_blocks[index]);
+                }
+            }
         }
     }
 }
