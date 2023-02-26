@@ -85,7 +85,7 @@ impl Listner {
                 continue;
             }
 
-            println!(
+            info!(
                 "new latest slot {latest_slot} -> {new_latest_slot} in {:?}",
                 last_new_slot_time.elapsed()
             );
