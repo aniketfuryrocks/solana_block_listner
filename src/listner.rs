@@ -5,6 +5,7 @@ use log::{info, warn};
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::RpcBlockConfig};
 use solana_sdk::{commitment_config::CommitmentConfig, slot_history::Slot};
 use solana_transaction_status::{TransactionDetails, UiTransactionEncoding};
+use tokio::time::Instant;
 
 use crate::block_store::{BlockInformation, BlockStore};
 
@@ -70,6 +71,7 @@ impl Listner {
         info!("Listening to blocks {commitment_config:?}");
 
         let mut slot_que = Vec::new();
+        let mut last_new_slot_time = Instant::now();
 
         loop {
             let new_latest_slot = self
@@ -82,6 +84,12 @@ impl Listner {
                 tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                 continue;
             }
+
+            println!(
+                "new latest slot {latest_slot} -> {new_latest_slot} in {:?}",
+                last_new_slot_time.elapsed()
+            );
+            last_new_slot_time = Instant::now();
 
             let mut new_block_slots = (latest_slot..new_latest_slot).into_iter().collect();
             latest_slot = new_latest_slot;
